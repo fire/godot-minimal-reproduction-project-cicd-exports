@@ -1,0 +1,198 @@
+name: 🎁 Deploy Builds
+on:
+  workflow_run:
+    workflows: [🐧 Linux Builds]
+    branches: [push, pull_request]
+    types: 
+      - completed
+
+concurrency:
+  group: ci-${{github.actor}}-${{github.head_ref || github.run_number}}-${{github.ref}}-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy-packages-linux:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Download linux-editor artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: vsk_builds.yml
+          workflow_conclusion: success
+          name: linux-editor
+
+      - name: Download linux-editor-shared-library artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: vsk_builds.yml
+          workflow_conclusion: success
+          name: linux-editor-shared-library
+
+      - name: Export Linux v-sekai-game
+        run: |
+          mkdir -p .godot/editor .godot/imported export_linuxbsd
+          cp godot.linuxbsd.editor.double.x86_64.llvm reproduction_case_linux.x86_64
+          chmod +x godot.linuxbsd.editor.double.x86_64.llvm
+          ./godot.linuxbsd.editor.double.x86_64.llvm --headless --xr-mode off --export-pack Linux/X11  `pwd`/reproduction_case_linux.x86_64.pck --path .
+          ./godot.linuxbsd.editor.double.x86_64.llvm --headless --xr-mode off --dump-extension-api --dump-gdextension-interface
+
+      - name: Upload Godot Artifact Export Linux
+        uses: actions/upload-artifact@v3
+        with:
+          name: reproduction_case_game_linux_x86_64
+          path: |
+            libgodot.linuxbsd.editor.double.x86_64.llvm.so
+            reproduction_case_linux.x86_64
+            reproduction_case_linux.x86_64.pck
+            extension_api.json
+            gdextension_interface.h
+          retention-days: 45
+
+      - name: Upload Godot Artifact Export JSON api
+        uses: actions/upload-artifact@v3
+        with:
+          name: v_sekai_gdextension_api
+          path: |
+            extension_api.json
+            gdextension_interface.h
+          retention-days: 45
+
+      - name: Prepare artifacts
+        run: |
+          export TARGET=reproduction-case-linux-x86_64
+          mkdir $TARGET
+          cp libgodot.linuxbsd.editor.double.x86_64.llvm.so $TARGET/libgodot.linuxbsd.editor.double.x86_64.llvm.so
+          cp reproduction_case_linux.x86_64 $TARGET/reproduction_case_linux.x86_64
+          cp reproduction_case_linux.x86_64.pck $TARGET/reproduction_case_linux.x86_64.pck
+          cp extension_api.json $TARGET/extension_api.json
+          cp gdextension_interface.h $TARGET/gdextension_interface.h
+          7z a -r $TARGET.zip $TARGET
+        shell: bash
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: reproduction-case-linux-x86_64.zip
+
+  deploy-packages-windows:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Download linux-editor artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: vsk_builds.yml
+          workflow_conclusion: success
+          name: linux-editor
+
+      - name: Download windows-editor artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: vsk_builds.yml
+          workflow_conclusion: success
+          name: windows-editor
+
+      - name: Download windows-editor-shared-library artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: vsk_builds.yml
+          workflow_conclusion: success
+          name: windows-editor-shared-library
+
+      - name: Export Windows active-ragdoll
+        run: |
+          mkdir -p .godot/editor .godot/imported export_windows
+          cp godot.windows.editor.double.x86_64.llvm.exe reproduction_case_windows_x86_64.exe
+          cp libgodot.windows.editor.double.x86_64.llvm.so libgodot.windows.editor.double.x86_64.llvm.dll
+          chmod +x godot.linuxbsd.editor.double.x86_64.llvm
+          ./godot.linuxbsd.editor.double.x86_64.llvm --headless --xr-mode off --export-pack Windows\ Desktop `pwd`/reproduction_case_windows_x86_64.pck --path .
+          ./godot.linuxbsd.editor.double.x86_64.llvm --headless --xr-mode off --dump-extension-api --dump-gdextension-interface
+
+      - name: Upload Godot Artifact Export Windows
+        uses: actions/upload-artifact@v3
+        with:
+          name: reproduction_case_game_windows_x86_64
+          path: |
+            libgodot.windows.editor.double.x86_64.llvm.dll
+            reproduction_case_windows_x86_64.exe
+            reproduction_case_windows_x86_64.pck
+            extension_api.json
+            gdextension_interface.h
+          retention-days: 45
+
+      - name: Prepare artifacts
+        run: |
+          export TARGET=reproduction-case-windows-x86_64
+          mkdir $TARGET
+          cp libgodot.windows.editor.double.x86_64.llvm.dll $TARGET/libgodot.windows.editor.double.x86_64.llvm.dll
+          cp reproduction_case_windows_x86_64.exe $TARGET/reproduction_case_windows_x86_64.exe
+          cp reproduction_case_windows_x86_64.pck $TARGET/reproduction_case_windows_x86_64.pck
+          cp extension_api.json $TARGET/extension_api.json
+          cp gdextension_interface.h $TARGET/gdextension_interface.h
+          7z a -r $TARGET.zip $TARGET
+        shell: bash
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: reproduction-case-windows-x86_64.zip
+
+  # deploy-packages-web:
+  #   needs: [build-linux]
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         submodules: recursive
+
+  #     - name: Download linux-editor artifact
+  #       uses: dawidd6/action-download-artifact@v2
+  #       with:
+  #         workflow: vsk_builds.yml
+  #         workflow_conclusion: success
+  #         name: linux-editor
+
+  #     - name: Download web-template artifact
+  #       uses: dawidd6/action-download-artifact@v2
+  #       with:
+  #         workflow: vsk_builds.yml
+  #         workflow_conclusion: success
+  #         name: web-template
+
+  #     - name: Export Web Active Ragdoll
+  #       run: |
+  #         mkdir -p .godot/editor .godot/imported
+  #         chmod +x godot.linuxbsd.editor.double.x86_64.llvm
+  #         ./godot.linuxbsd.editor.double.x86_64.llvm --headless --xr-mode off --export-pack Web `pwd`/.web_zip/index.pck --path .
+
+  #     - name: Upload Godot Artifact Export Web
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: reproduction_case_game_web_wasm
+  #         path: |
+  #           .web_zip
+  #         retention-days: 45
+
+  #     - name: Prepare artifacts
+  #       run: |
+  #         export TARGET=reproduction-case-web-wasm
+  #         mkdir $TARGET
+  #         mv .web_zip/godot.html .web_zip/index.html
+  #         cp .web_zip/* $TARGET/
+  #         7z a -r $TARGET.zip $TARGET
+  #       shell: bash
+
+  #     - name: Release
+  #       uses: softprops/action-gh-release@v1
+  #       if: startsWith(github.ref, 'refs/tags/')
+  #       with:
+  #         files: reproduction-case-web-wasm.zip
