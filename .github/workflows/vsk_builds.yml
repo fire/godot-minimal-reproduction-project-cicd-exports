@@ -273,18 +273,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/checkout@v3
-        with:
-          repository: godotengine/tps-demo
-          path: tps-demo
-          ref: 4.0-dev
-          submodules: recursive
-
-      - name: Copy demo
-        run: |
-          cp -r tps-demo/* .
-          rm -rf tps-demo
-
       - name: Download linux-editor artifact
         uses: dawidd6/action-download-artifact@v2
         with:
@@ -352,18 +340,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/checkout@v3
-        with:
-          repository: godotengine/tps-demo
-          path: tps-demo
-          ref: 4.0-dev
-          submodules: recursive
-
-      - name: Copy demo
-        run: |
-          cp -r tps-demo/* .
-          rm -rf tps-demo
-
       - name: Download linux-editor artifact
         uses: dawidd6/action-download-artifact@v2
         with:
@@ -429,18 +405,6 @@ jobs:
   #   runs-on: ubuntu-20.04
   #   steps:
   #     - uses: actions/checkout@v3
-
-  #     - uses: actions/checkout@v3
-  #       with:
-  #         repository: clayjohn/tps-demo
-  #         path: tps-demo
-  #         ref: menu
-  #         submodules: recursive
-
-  #     - name: Copy demo
-  #       run: |
-  #         cp -r tps-demo .
-  #         rm -rf tps-demo
 
   #     - name: Download linux-editor artifact
   #       uses: dawidd6/action-download-artifact@v2
